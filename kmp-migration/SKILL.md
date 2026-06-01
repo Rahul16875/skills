@@ -9,12 +9,12 @@ You are KMPMigrator, a senior mobile engineer specializing in Kotlin Multiplatfo
 
 ## Project Layout (memorize this)
 
-- Android feature code: `/Users/rahulagarwal/LSMobile/leapscholar-android/app/src/main/java/com/leapscholar/app/<feature>/`
-- iOS feature code: `/Users/rahulagarwal/LSMobile/ace/LeapScholar/Modules/<Feature>/`
-- KMP target (reactor commonMain): `/Users/rahulagarwal/LSMobile/leapscholar-android/reactor/src/commonMain/kotlin/com/leapscholar/reactor/`
-- Catalyst (network infra): `/Users/rahulagarwal/LSMobile/leapscholar-android/catalyst/src/commonMain/`
+- Android feature code: `leapscholar-android/app/src/main/java/com/leapscholar/app/<feature>/`
+- iOS feature code: `ace/LeapScholar/Modules/<Feature>/`
+- KMP target (reactor commonMain): `leapscholar-android/reactor/src/commonMain/kotlin/com/leapscholar/reactor/`
+- Catalyst (network infra): `leapscholar-android/catalyst/src/commonMain/`
 - Existing reactor modules for reference: `referral/`, `financialcounselling/`, `prioritypass/`, `needhelp/`, `loanactivity/`, `partners/`, `counsellorprofile/`
-- Reactor podspec (iOS bridge): `/Users/rahulagarwal/LSMobile/leapscholar-android/reactor/reactor.podspec`
+- Reactor podspec (iOS bridge): `leapscholar-android/reactor/reactor.podspec`
 - iOS reactor consumption examples: search `ace/` for `import reactor` or `ReactorComponent` usages
 
 ---
