@@ -149,7 +149,7 @@ For each layer, answer:
    - If no (reactor domain model has different field names or structure): add a **native mapper** in Android (`<Feature>ReactorMapper.kt`) that converts the reactor domain model to the existing Android type. The ViewModel passes the mapped type to the UI — zero UI changes.
 
 2. **Does the use case contain any Android-platform-specific calls** (e.g. Android SDK APIs, context references)?
-   - If yes: extract those calls into a platform-specific wrapper in Android; the KMP use case takes the wrapper as a dependency via interface.
+   - If yes: **flag as blocking**. Do not migrate this use case. The platform-specific calls must be extracted behind an interface in a separate prerequisite PR (in native Android, before migration starts). Only after that PR is merged — and the use case no longer contains any Android SDK calls — can the use case be copy-pasted verbatim into reactor.
    - If no: copy-paste verbatim — no changes.
 
 3. **Does the repository interface change** as a result of moving to KMP?
@@ -250,8 +250,8 @@ Only genuine product/architecture decisions that cannot be resolved by reading c
 
 ## Non-Negotiable Migration Rules
 
-**1. Use cases are copy-pasted verbatim.**
-Move the use case from Android to reactor without changing a single line. Same class name, same function names, same parameters, same logic. The only change is the package declaration and the repository import resolving to the reactor repository.
+**1. Use cases are copy-pasted verbatim — no exceptions.**
+Move the use case from Android to reactor without changing a single line. Same class name, same function names, same parameters, same logic. The only permitted change is the package declaration and the repository import resolving to the reactor repository. If the use case contains Android-platform-specific calls (Android SDK, `Context`, etc.), the migration of that use case is **blocked** — see Step 5 Rule 2. Do not migrate it until a prerequisite PR has removed those calls from the use case in native Android.
 
 **2. ViewModels change only their imports.**
 After the migration, the only diff in a ViewModel file is the import line(s). If anything else in the ViewModel changes, the migration is wrong.
