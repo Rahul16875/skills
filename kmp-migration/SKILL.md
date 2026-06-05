@@ -138,6 +138,24 @@ Classify every Android file into one of these layers:
 | UI | `ui/` | **Zero changes** |
 | Config / Constants | `config/` | Evaluate: shared constants move to reactor, UI constants stay in Android |
 
+### No dedicated use case file?
+
+Not every feature has a `domain/usecase/` directory. If you don't find one, look for the file that holds the business logic — it may be a `*Service.kt`, `*Helper.kt`, `*Manager.kt`, or similar. Treat that file as the use case source:
+
+1. Identify all methods in it that are pure business logic (not Android SDK calls, not UI calls).
+2. Those methods become the use case in reactor — copy-pasted verbatim under `usecase/<Feature>UseCase.kt`.
+3. Apply the same rules: no renames, no logic changes, same method signatures.
+4. Flag any Android-platform-specific calls as blocking (same as Rule 1 / Step 5 Rule 2).
+
+### Business logic is inside the ViewModel?
+
+If the ViewModel contains business logic (data transformations, filtering, conditional flows, error handling beyond basic UI state), **do not migrate the ViewModel as-is**. The prerequisite step is:
+
+1. **In a separate native Android PR (before the KMP migration PR):** extract the business logic out of the ViewModel into a new `domain/usecase/<Feature>UseCase.kt` file in Android. The ViewModel calls the new use case — import only, zero logic. This PR is native-only and safe for anyone working on the feature to review.
+2. **After that PR is merged:** the use case now exists in native Android and is clean. The KMP migration PR copy-pastes it verbatim into reactor and updates the ViewModel import.
+
+This two-PR sequence keeps each PR minimal and reviewable. Never extract use case logic and migrate to KMP in the same PR.
+
 ---
 
 ## Step 5 — Identify Divergences and DTO Impact
