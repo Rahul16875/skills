@@ -25,7 +25,7 @@ The goal is that a developer working on the native Android feature can continue 
 - **Use cases**: copy-paste from Android to reactor verbatim. Do not change a single line of logic, naming, or structure.
 - **ViewModels**: only the import changes. The ViewModel calls `reactorUseCase.execute()` instead of `nativeUseCase.execute()` — same method name, same parameters, same result type.
 - **DTOs**: reactor DTOs never leave the reactor boundary. The repository maps DTO → domain model via `toDomain()`. If the domain model differs from what Android currently uses, add a **native mapper** in Android that converts the reactor domain model to the existing Android type — the UI and ViewModel never change.
-- **Android is the sole source of truth.** Do not compare with iOS or let iOS patterns influence the migration. iOS requires a separate effort.
+- **Android is the sole source of truth — never compare with iOS.** Do not read iOS code to decide how to migrate. Do not, per subtask, weigh "iOS vs Android" and pick whichever looks better. The migration is a one-way port: Android → KMP (reactor). iOS is only relevant *after* the port, for deleting code that the reactor now makes redundant (see Step 8).
 
 ### The KMP Layer Contract
 
@@ -219,6 +219,25 @@ Files in Android that are now redundant (moved to reactor):
 
 ---
 
+## Step 8 — iOS Redundant-Code Deletion Pass
+
+This is the **only** step where iOS code is read, and it happens **after** the Android → reactor port is planned — never before, and never to influence how anything is migrated.
+
+The reactor `commonMain` modules created in this migration are shared: once a use case, repository, DTO, or domain model lives in reactor, iOS consumes the exact same code. Any iOS implementation that previously duplicated that logic is now redundant and should be deleted.
+
+For each reactor file produced by the migration, identify its iOS counterpart:
+
+- Search the iOS codebase for the equivalent DTO, network call, repository, domain model, and business logic for `<feature>`.
+- For each iOS file, classify it:
+  - **Redundant — delete:** logic now fully provided by reactor `commonMain` (DTOs, repositories, use cases, domain models). The iOS layer should call the reactor use case instead.
+  - **Rewire only:** iOS view models / UI that should now call the reactor use case instead of the old iOS implementation — import/call-site change only, no logic change (mirrors the Android ViewModel rule).
+  - **Keep:** genuinely iOS-platform-specific code (UI, platform APIs) that reactor does not cover.
+- Do **not** compare iOS logic against Android to decide what is "correct." Reactor (ported from Android) is now the single implementation. iOS code that duplicates it is deleted regardless of how it was written.
+
+Output a deletion list: each iOS file, its reactor replacement, and whether it is delete / rewire / keep. Flag anything where the iOS behavior appears to differ from the reactor (Android) behavior as a `blocking` open question — do not silently reconcile it.
+
+---
+
 ## Output Format
 
 ### Feature Overview
@@ -248,6 +267,9 @@ Per-ViewModel import changes. Per-mapper file needed. Cleanup list.
 ### Post-Migration Cleanup Checklist
 All original Android files to delete, and all files importing them that need updating.
 
+### iOS Redundant-Code Deletion (Step 8)
+Table: each iOS file for `<feature>`, its reactor replacement, and classification (delete / rewire / keep). List any iOS-vs-reactor behavior differences as blocking open questions — do not reconcile them silently.
+
 ### Definition of Done
 - [ ] All DTOs in reactor commonMain, `@Serializable`, not exported outside reactor
 - [ ] All API/RemoteSource files in reactor, using catalyst `BaseDataSource`
@@ -260,6 +282,8 @@ All original Android files to delete, and all files importing them that need upd
 - [ ] All files that previously imported the deleted files are updated
 - [ ] Analytics: pure event-firing stays in Android, logic-driven analytics in UseCase
 - [ ] CONTEXT.md files updated in touched directories
+- [ ] iOS code that duplicates the new reactor logic identified and flagged for deletion/rewire (Step 8)
+- [ ] No iOS-vs-Android comparison was used to decide *how* to migrate — Android was the sole source
 
 ### Open Questions
 Only genuine product/architecture decisions that cannot be resolved by reading code. Rank: `blocking` vs `nice-to-clarify`.
@@ -292,8 +316,8 @@ Do not simplify, optimize, rewrite, or improve any logic. Every conditional, tra
 **8. Use catalyst types exactly as found. No new infrastructure.**
 Use the exact `BaseDataSource`, `Resource`, `NetworkError`, and Ktor client patterns from catalyst. Do not introduce new wrappers, new error types, or new patterns.
 
-**9. Android is the sole source of truth.**
-Do not compare with iOS. Do not let iOS patterns influence the migration plan. iOS migration is a separate, later effort.
+**9. Android is the sole source of truth — never compare with iOS.**
+The port is one-directional: Android → KMP (reactor). For every layer and every subtask, the *only* input is the Android implementation. Never open iOS code to compare approaches, and never decide "iOS does it better, so migrate it the iOS way." There is no per-subtask iOS-vs-Android choice — there is only the Android source, copied verbatim. The single permitted use of iOS code is the post-migration deletion pass (Step 8): once Android logic lives in reactor `commonMain`, the iOS code that duplicated that logic is redundant and must be flagged for deletion. iOS is never an input to *how* you migrate — only an output of *what becomes deletable*.
 
 **10. No cleanup, refactor, or improvement — just move.**
 A migration PR is a straight port, reviewable line-by-line against the original. Improvements are separate work.
@@ -306,4 +330,5 @@ A migration PR is a straight port, reviewable line-by-line against the original.
 - Always read CONTEXT.md when it exists in a directory you touch.
 - If a file or directory doesn't exist where expected, say so explicitly.
 - Do not write any KMP code — this skill is analysis and planning only.
-- Complete all 7 steps before producing output.
+- Never read iOS code to decide how to migrate. iOS is touched only in Step 8, and only to find code the reactor now makes redundant.
+- Complete all 8 steps before producing output.
